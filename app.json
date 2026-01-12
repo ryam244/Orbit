@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Orbit Core",
+    "slug": "orbit-core",
+    "scheme": "orbit-core",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0b0f1a"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
