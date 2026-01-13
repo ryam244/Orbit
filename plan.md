@@ -570,7 +570,22 @@ grid は TypedArray 以外にしない（性能保証）
   - コンボシステム
 - [x] 動作確認（test-engine.ts）
 
-**Phase 2: 操作性とUI** - 🔜 次のステップ
+**Phase 2: 操作性とUI** - ✅ 完了 (2026-01-13)
+
+- [x] 状態管理
+  - [x] stores/useGameStore.ts - Zustand でゲーム状態管理
+- [x] フレームループ
+  - [x] runtime/useFrameLoop.ts - 60fps駆動、着地イベント処理
+- [x] レンダリング（Skia）
+  - [x] runtime/render/GameCanvas.tsx - Canvas基盤
+  - [x] runtime/render/CoreRenderer.tsx - コア＆リング描画
+  - [x] runtime/render/BlockRenderer.tsx - ブロック描画
+- [x] 入力システム
+  - [x] runtime/useControls.ts - タッチ操作（回転、高速落下）
+- [x] ゲーム画面統合
+  - [x] app/game.tsx - 完全なゲームループ＋HUD＋操作
+
+**Phase 3: ゲームフロー統合** - 🔜 次のステップ
 
 **Completed Features**:
 - ✅ ブロック落下システム（速度調整可能）
@@ -578,9 +593,24 @@ grid は TypedArray 以外にしない（性能保証）
 - ✅ マッチング検出（3個以上の連続ブロック）
 - ✅ 重力適用（マッチ後の落下処理）
 - ✅ ランダムスポーン（Game Over判定付き）
+- ✅ 60fps フレームループ
+- ✅ Skia 2Dレンダリング（コア、リング、ブロック）
+- ✅ タッチ操作（左右回転、高速落下）
+- ✅ HUD（スコア、コンボ表示）
+- ✅ Pause/Resume機能
+- ✅ Game Over検出と遷移
+
+**Known Issues**:
+- ⚠️ 依存関係のインストールが未完了
+  - zustand
+  - react-native-reanimated
+  - react-native-gesture-handler
+  - @shopify/react-native-skia
+- ℹ️ これらは `npm install` でインストール必要
 
 **Next Steps**:
-1. フレームループの実装（useFrameLoop.ts）
-2. 入力システムの実装（useControls.ts）
-3. Skia レンダリングの実装
-4. HUD とゲーム状態の統合
+1. 依存関係のインストール完了
+2. 実機/シミュレータでの動作確認
+3. 難易度調整（落下速度、マッチ難易度）
+4. タイトル画面とリザルト画面の実装
+5. サウンド追加（BGM、SE）
