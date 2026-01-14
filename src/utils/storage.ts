@@ -18,6 +18,7 @@ export const STORAGE_KEYS = {
   MODE_SCORES: '@orbit:modeScores', // High scores per mode
   BGM_VOLUME: '@orbit:bgmVolume',
   SE_VOLUME: '@orbit:seVolume',
+  TUTORIAL_COMPLETED: '@orbit:tutorialCompleted', // Tutorial completion flag
 } as const;
 
 /**
@@ -39,6 +40,7 @@ export type PersistedData = {
   modeScores: Partial<Record<GameMode, number>>; // High scores per mode
   bgmVolume: number; // 0.0 - 1.0
   seVolume: number; // 0.0 - 1.0
+  tutorialCompleted: boolean; // Tutorial completion flag
 };
 
 /**
@@ -54,6 +56,7 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       modeScoresStr,
       bgmVolumeStr,
       seVolumeStr,
+      tutorialCompletedStr,
     ] = await Promise.all([
       AsyncStorage.getItem(STORAGE_KEYS.HIGH_SCORE),
       AsyncStorage.getItem(STORAGE_KEYS.GAMES_PLAYED),
@@ -62,6 +65,7 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       AsyncStorage.getItem(STORAGE_KEYS.MODE_SCORES),
       AsyncStorage.getItem(STORAGE_KEYS.BGM_VOLUME),
       AsyncStorage.getItem(STORAGE_KEYS.SE_VOLUME),
+      AsyncStorage.getItem(STORAGE_KEYS.TUTORIAL_COMPLETED),
     ]);
 
     const difficultyScores = difficultyScoresStr
@@ -80,6 +84,7 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       modeScores,
       bgmVolume: bgmVolumeStr ? parseFloat(bgmVolumeStr) : 0.5,
       seVolume: seVolumeStr ? parseFloat(seVolumeStr) : 0.7,
+      tutorialCompleted: tutorialCompletedStr === 'true',
     };
   } catch (error) {
     console.error('Failed to load persisted data:', error);
@@ -91,6 +96,7 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       modeScores: {},
       bgmVolume: 0.5,
       seVolume: 0.7,
+      tutorialCompleted: false,
     };
   }
 };
@@ -182,6 +188,17 @@ export const saveModeScores = async (
 };
 
 /**
+ * Save tutorial completed flag to AsyncStorage
+ */
+export const saveTutorialCompleted = async (completed: boolean): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.TUTORIAL_COMPLETED, String(completed));
+  } catch (error) {
+    console.error('Failed to save tutorial completed flag:', error);
+  }
+};
+
+/**
  * Save all persistent data at once
  */
 export const saveAllData = async (data: PersistedData): Promise<void> => {
@@ -200,6 +217,7 @@ export const saveAllData = async (data: PersistedData): Promise<void> => {
       AsyncStorage.setItem(STORAGE_KEYS.MODE_SCORES, JSON.stringify(data.modeScores)),
       AsyncStorage.setItem(STORAGE_KEYS.BGM_VOLUME, String(data.bgmVolume)),
       AsyncStorage.setItem(STORAGE_KEYS.SE_VOLUME, String(data.seVolume)),
+      AsyncStorage.setItem(STORAGE_KEYS.TUTORIAL_COMPLETED, String(data.tutorialCompleted)),
     ]);
   } catch (error) {
     console.error('Failed to save all data:', error);

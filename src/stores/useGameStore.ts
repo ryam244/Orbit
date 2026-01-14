@@ -16,6 +16,7 @@ import {
   saveModeScores,
   saveBGMVolume,
   saveSEVolume,
+  saveTutorialCompleted,
   type DifficultyScore,
 } from '../utils/storage';
 import {
@@ -70,6 +71,7 @@ type GameStore = {
   modeScores: Partial<Record<GameMode, number>>;
   bgmVolume: number;
   seVolume: number;
+  tutorialCompleted: boolean;
 
   // Actions
   startGame: () => void;
@@ -82,6 +84,7 @@ type GameStore = {
   setMode: (mode: GameMode) => void;
   setBGMVolume: (volume: number) => void;
   setSEVolume: (volume: number) => void;
+  setTutorialCompleted: (completed: boolean) => void;
 
   // Engine updates
   updateEngine: (updates: Partial<EngineState>) => void;
@@ -105,6 +108,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   modeScores: {},
   bgmVolume: 0.5,
   seVolume: 0.7,
+  tutorialCompleted: false,
 
   // Start new game
   startGame: () => {
@@ -276,6 +280,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       modeScores: data.modeScores,
       bgmVolume: data.bgmVolume,
       seVolume: data.seVolume,
+      tutorialCompleted: data.tutorialCompleted,
     });
   },
 
@@ -300,5 +305,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setSEVolume: (volume) => {
     set({ seVolume: volume });
     saveSEVolume(volume);
+  },
+
+  // Set tutorial completed
+  setTutorialCompleted: (completed) => {
+    set({ tutorialCompleted: completed });
+    saveTutorialCompleted(completed);
   },
 }));

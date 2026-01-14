@@ -3,21 +3,30 @@
  * Main menu with cyberpunk theme
  */
 
-import React from 'react';
-import { Link } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Link, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGameStore } from '../stores/useGameStore';
 import { getDifficultyConfig } from '../constants/DifficultyConfig';
 import { getGameModeConfig } from '../constants/GameModeConfig';
 
 export default function TitleScreen() {
+  const router = useRouter();
   const highScore = useGameStore((state) => state.highScore);
   const gamesPlayed = useGameStore((state) => state.gamesPlayed);
   const selectedDifficulty = useGameStore((state) => state.selectedDifficulty);
   const selectedMode = useGameStore((state) => state.selectedMode);
+  const tutorialCompleted = useGameStore((state) => state.tutorialCompleted);
 
   const difficultyConfig = getDifficultyConfig(selectedDifficulty);
   const modeConfig = getGameModeConfig(selectedMode);
+
+  // Auto-navigate to tutorial on first launch
+  useEffect(() => {
+    if (!tutorialCompleted) {
+      router.replace('/tutorial');
+    }
+  }, [tutorialCompleted, router]);
 
   return (
     <View style={styles.container}>
@@ -66,6 +75,12 @@ export default function TitleScreen() {
         <Link href="/result" asChild>
           <Pressable style={styles.tertiaryButton}>
             <Text style={styles.tertiaryText}>📊 STATISTICS</Text>
+          </Pressable>
+        </Link>
+
+        <Link href="/tutorial" asChild>
+          <Pressable style={styles.tertiaryButton}>
+            <Text style={styles.tertiaryText}>❓ HOW TO PLAY</Text>
           </Pressable>
         </Link>
       </View>
