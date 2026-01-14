@@ -13,6 +13,7 @@ import {
   saveGamesPlayed,
   saveSelectedDifficulty,
   saveDifficultyScores,
+  saveModeScores,
   saveBGMVolume,
   saveSEVolume,
   type DifficultyScore,
@@ -49,6 +50,8 @@ const createInitialEngineState = (): EngineState => ({
   nextColor: randomColor(GameConfig.colorCount),
   bpm: GameConfig.defaultBpm,
   musicStartMs: 0,
+  isTimeMode: false,
+  isEndlessMode: false,
 });
 
 /**
@@ -64,6 +67,7 @@ type GameStore = {
   selectedDifficulty: DifficultyLevel;
   selectedMode: GameMode;
   difficultyScores: Partial<Record<DifficultyLevel, DifficultyScore>>;
+  modeScores: Partial<Record<GameMode, number>>;
   bgmVolume: number;
   seVolume: number;
 
@@ -98,6 +102,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectedDifficulty: DEFAULT_DIFFICULTY,
   selectedMode: DEFAULT_GAME_MODE,
   difficultyScores: {},
+  modeScores: {},
   bgmVolume: 0.5,
   seVolume: 0.7,
 
@@ -105,13 +110,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startGame: () => {
     const newGamesPlayed = get().gamesPlayed + 1;
     const difficulty = get().selectedDifficulty;
+    const mode = get().selectedMode;
     const difficultyConfig = getDifficultyConfig(difficulty);
+
+    // Determine mode flags
+    const isTimeMode = mode === 'timeAttack';
+    const isEndlessMode = mode === 'endless';
 
     set({
       engine: {
         ...createInitialEngineState(),
         status: 'PLAYING',
         musicStartMs: Date.now(),
+        isTimeMode,
+        isEndlessMode,
+        // Time Attack: set initial remaining time (120 seconds = 2 minutes)
+        remainingTime: isTimeMode ? 120 : undefined,
         // Note: Initial velocity will be set when first block spawns
         // ColorCount will be used in spawn function via difficulty config
       },
@@ -146,6 +160,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set((state) => {
       const rawScore = state.engine.score;
       const difficulty = state.selectedDifficulty;
+      const mode = state.selectedMode;
       const normalizedScore = calculateNormalizedScore(rawScore, difficulty);
 
       // Update legacy high score
@@ -167,6 +182,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         saveDifficultyScores(newDifficultyScores);
       }
 
+      // Update mode-specific high score
+      const currentModeScore = state.modeScores[mode];
+      const newModeScores = { ...state.modeScores };
+
+      if (!currentModeScore || rawScore > currentModeScore) {
+        newModeScores[mode] = rawScore;
+        saveModeScores(newModeScores);
+      }
+
       // Save legacy high score if it changed
       if (highScoreChanged) {
         saveHighScore(newHighScore);
@@ -179,6 +203,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         },
         highScore: newHighScore,
         difficultyScores: newDifficultyScores,
+        modeScores: newModeScores,
       };
     });
   },
@@ -248,6 +273,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gamesPlayed: data.gamesPlayed,
       selectedDifficulty: data.selectedDifficulty,
       difficultyScores: data.difficultyScores,
+      modeScores: data.modeScores,
       bgmVolume: data.bgmVolume,
       seVolume: data.seVolume,
     });

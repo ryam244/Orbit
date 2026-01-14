@@ -147,12 +147,26 @@ export default function GameScreen() {
           <Text style={styles.hudLabel}>Score</Text>
           <Text style={styles.hudValue}>{engine.score}</Text>
         </View>
-        <View style={styles.hudRow}>
-          <Text style={styles.hudLabel}>Combo</Text>
-          <Text style={styles.hudValue}>
-            {engine.combo > 0 ? `x${engine.combo}` : '-'}
-          </Text>
-        </View>
+        {engine.isTimeMode && engine.remainingTime !== undefined ? (
+          <View style={styles.hudRow}>
+            <Text style={styles.hudLabel}>Time</Text>
+            <Text
+              style={[
+                styles.hudValue,
+                engine.remainingTime < 30 && styles.hudValueWarning,
+              ]}
+            >
+              {Math.ceil(engine.remainingTime)}s
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.hudRow}>
+            <Text style={styles.hudLabel}>Combo</Text>
+            <Text style={styles.hudValue}>
+              {engine.combo > 0 ? `x${engine.combo}` : '-'}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Control Areas */}
@@ -222,6 +236,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#00ffff',
+  },
+  hudValueWarning: {
+    color: '#ff0000',
   },
   controlsContainer: {
     position: 'absolute',

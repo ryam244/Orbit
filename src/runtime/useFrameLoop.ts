@@ -113,9 +113,43 @@ export const useFrameLoop = () => {
         updateEngine({ nextColor });
       } catch (error) {
         // Game Over - no free spawn position
-        console.log('Game Over: No spawn position available');
-        endGame();
-        setActiveBlock(null);
+        if (engine.isEndlessMode) {
+          // Endless mode: Auto-clear grid and continue
+          console.log('Endless mode: Grid full, auto-clearing');
+          const clearedGrid = new Uint8Array(
+            GameConfig.ringCount * GameConfig.sectorCount
+          );
+          setGrid(clearedGrid);
+
+          // Spawn new block on cleared grid
+          const nextColor = randomColor(difficultyConfig.colorCount);
+          try {
+            const spawnResult = spawn({
+              grid: clearedGrid,
+              nextColor: engine.nextColor,
+              sectorCount: GameConfig.sectorCount,
+            });
+
+            setActiveBlock({
+              id: `block-${Date.now()}`,
+              color: spawnResult.color,
+              sector: spawnResult.sector,
+              ringPos: 0,
+              velocity: difficultyConfig.initialVelocity,
+            });
+
+            updateEngine({ nextColor });
+          } catch {
+            // This shouldn't happen with empty grid, but handle it
+            endGame();
+            setActiveBlock(null);
+          }
+        } else {
+          // Standard mode: Game Over
+          console.log('Game Over: No spawn position available');
+          endGame();
+          setActiveBlock(null);
+        }
       }
     } catch (error) {
       console.error('Error handling landing:', error);
@@ -150,6 +184,18 @@ export const useFrameLoop = () => {
     const deltaMs = lastFrameTime.value === 0 ? 16 : frameInfo.timestamp - lastFrameTime.value;
     const deltaSeconds = deltaMs / 1000;
     lastFrameTime.value = frameInfo.timestamp;
+
+    // Time Attack mode: Update remaining time
+    if (engine.isTimeMode && engine.remainingTime !== undefined) {
+      const newRemainingTime = Math.max(0, engine.remainingTime - deltaSeconds);
+      runOnJS(updateEngine)({ remainingTime: newRemainingTime });
+
+      // Time's up - game over
+      if (newRemainingTime <= 0) {
+        runOnJS(endGame)();
+        return;
+      }
+    }
 
     // Skip if no active block
     if (!engine.active) {

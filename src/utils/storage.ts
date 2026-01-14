@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { DifficultyLevel } from '../constants/DifficultyConfig';
+import type { GameMode } from '../constants/GameModeConfig';
 
 /**
  * Storage keys
@@ -14,6 +15,7 @@ export const STORAGE_KEYS = {
   GAMES_PLAYED: '@orbit:gamesPlayed',
   SELECTED_DIFFICULTY: '@orbit:selectedDifficulty',
   DIFFICULTY_SCORES: '@orbit:difficultyScores', // High scores per difficulty
+  MODE_SCORES: '@orbit:modeScores', // High scores per mode
   BGM_VOLUME: '@orbit:bgmVolume',
   SE_VOLUME: '@orbit:seVolume',
 } as const;
@@ -34,6 +36,7 @@ export type PersistedData = {
   gamesPlayed: number;
   selectedDifficulty: DifficultyLevel;
   difficultyScores: Partial<Record<DifficultyLevel, DifficultyScore>>;
+  modeScores: Partial<Record<GameMode, number>>; // High scores per mode
   bgmVolume: number; // 0.0 - 1.0
   seVolume: number; // 0.0 - 1.0
 };
@@ -48,6 +51,7 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       gamesPlayedStr,
       selectedDifficultyStr,
       difficultyScoresStr,
+      modeScoresStr,
       bgmVolumeStr,
       seVolumeStr,
     ] = await Promise.all([
@@ -55,6 +59,7 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       AsyncStorage.getItem(STORAGE_KEYS.GAMES_PLAYED),
       AsyncStorage.getItem(STORAGE_KEYS.SELECTED_DIFFICULTY),
       AsyncStorage.getItem(STORAGE_KEYS.DIFFICULTY_SCORES),
+      AsyncStorage.getItem(STORAGE_KEYS.MODE_SCORES),
       AsyncStorage.getItem(STORAGE_KEYS.BGM_VOLUME),
       AsyncStorage.getItem(STORAGE_KEYS.SE_VOLUME),
     ]);
@@ -63,6 +68,8 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       ? JSON.parse(difficultyScoresStr)
       : {};
 
+    const modeScores = modeScoresStr ? JSON.parse(modeScoresStr) : {};
+
     return {
       highScore: highScoreStr ? parseInt(highScoreStr, 10) : 0,
       gamesPlayed: gamesPlayedStr ? parseInt(gamesPlayedStr, 10) : 0,
@@ -70,6 +77,7 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
         ? (parseInt(selectedDifficultyStr, 10) as DifficultyLevel)
         : 4, // Default to Normal
       difficultyScores,
+      modeScores,
       bgmVolume: bgmVolumeStr ? parseFloat(bgmVolumeStr) : 0.5,
       seVolume: seVolumeStr ? parseFloat(seVolumeStr) : 0.7,
     };
@@ -80,6 +88,7 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       gamesPlayed: 0,
       selectedDifficulty: 4,
       difficultyScores: {},
+      modeScores: {},
       bgmVolume: 0.5,
       seVolume: 0.7,
     };
@@ -160,6 +169,19 @@ export const saveSEVolume = async (volume: number): Promise<void> => {
 };
 
 /**
+ * Save mode scores to AsyncStorage
+ */
+export const saveModeScores = async (
+  scores: Partial<Record<GameMode, number>>
+): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.MODE_SCORES, JSON.stringify(scores));
+  } catch (error) {
+    console.error('Failed to save mode scores:', error);
+  }
+};
+
+/**
  * Save all persistent data at once
  */
 export const saveAllData = async (data: PersistedData): Promise<void> => {
@@ -175,6 +197,7 @@ export const saveAllData = async (data: PersistedData): Promise<void> => {
         STORAGE_KEYS.DIFFICULTY_SCORES,
         JSON.stringify(data.difficultyScores)
       ),
+      AsyncStorage.setItem(STORAGE_KEYS.MODE_SCORES, JSON.stringify(data.modeScores)),
       AsyncStorage.setItem(STORAGE_KEYS.BGM_VOLUME, String(data.bgmVolume)),
       AsyncStorage.setItem(STORAGE_KEYS.SE_VOLUME, String(data.seVolume)),
     ]);

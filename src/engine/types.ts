@@ -55,6 +55,11 @@ export type EngineState = {
   // Beat Sync (pseudo)
   bpm: number;
   musicStartMs: number; // Start time offset for sync
+
+  // Mode-specific state
+  remainingTime?: number; // Time Attack mode: remaining seconds
+  isTimeMode: boolean; // Time Attack mode flag
+  isEndlessMode: boolean; // Endless mode flag
 };
 
 /**

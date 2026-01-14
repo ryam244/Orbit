@@ -11,13 +11,16 @@ import {
   getDifficultyConfig,
   calculateNormalizedScore,
 } from '../constants/DifficultyConfig';
+import { getGameModeConfig } from '../constants/GameModeConfig';
 
 export default function ResultScreen() {
   const router = useRouter();
   const engine = useGameStore((state) => state.engine);
   const highScore = useGameStore((state) => state.highScore);
   const selectedDifficulty = useGameStore((state) => state.selectedDifficulty);
+  const selectedMode = useGameStore((state) => state.selectedMode);
   const difficultyScores = useGameStore((state) => state.difficultyScores);
+  const modeScores = useGameStore((state) => state.modeScores);
   const resetGame = useGameStore((state) => state.resetGame);
 
   const [displayScore, setDisplayScore] = useState(0);
@@ -27,10 +30,12 @@ export default function ResultScreen() {
   const finalScore = engine.score;
   const maxCombo = engine.combo;
   const difficultyConfig = getDifficultyConfig(selectedDifficulty);
+  const modeConfig = getGameModeConfig(selectedMode);
   const normalizedScore = calculateNormalizedScore(finalScore, selectedDifficulty);
 
   // Check if this is a new record for this difficulty
   const previousBest = difficultyScores[selectedDifficulty];
+  const previousModeBest = modeScores[selectedMode];
   const isNewRecord =
     normalizedScore > 0 &&
     (!previousBest || normalizedScore > previousBest.normalizedScore);
@@ -101,6 +106,11 @@ export default function ResultScreen() {
           </View>
         )}
 
+        {/* Mode info */}
+        <Text style={styles.modeLabel}>
+          {modeConfig.icon} {modeConfig.name.toUpperCase()}
+        </Text>
+
         {/* Difficulty info */}
         <Text style={styles.difficultyLabel}>
           {difficultyConfig.name.toUpperCase()} (LV.{selectedDifficulty})
@@ -125,11 +135,9 @@ export default function ResultScreen() {
           </View>
           <View style={styles.divider} />
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>BEST (THIS DIFF)</Text>
+            <Text style={styles.statLabel}>BEST (MODE)</Text>
             <Text style={styles.statValue}>
-              {previousBest
-                ? previousBest.normalizedScore.toLocaleString()
-                : '-'}
+              {previousModeBest ? previousModeBest.toLocaleString() : '-'}
             </Text>
           </View>
         </View>
@@ -205,6 +213,13 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#000',
     letterSpacing: 2,
+  },
+  modeLabel: {
+    fontSize: 14,
+    color: '#00ffff',
+    letterSpacing: 2,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   difficultyLabel: {
     fontSize: 12,
