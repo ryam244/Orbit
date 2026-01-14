@@ -113,7 +113,6 @@ const styles = StyleSheet.create({
     borderRadius: 150,
     backgroundColor: '#00ffff',
     opacity: 0.1,
-    blur: 50,
   },
   glowBottom: {
     position: 'absolute',
@@ -123,7 +122,6 @@ const styles = StyleSheet.create({
     borderRadius: 150,
     backgroundColor: '#ff00ff',
     opacity: 0.1,
-    blur: 50,
   },
   titleSection: {
     alignItems: 'center',

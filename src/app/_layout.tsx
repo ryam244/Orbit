@@ -10,7 +10,7 @@ export default function RootLayout() {
   // Load persisted data on app startup
   useEffect(() => {
     loadPersistedData();
-  }, []);
+  }, [loadPersistedData]);
 
   return (
     <GestureHandlerRootView style={styles.container}>

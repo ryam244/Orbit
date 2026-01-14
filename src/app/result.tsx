@@ -172,7 +172,6 @@ const styles = StyleSheet.create({
     borderRadius: 200,
     backgroundColor: '#00ffff',
     opacity: 0.05,
-    blur: 100,
   },
   title: {
     fontSize: 48,

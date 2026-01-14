@@ -26,7 +26,6 @@ import {
   type AchievementId,
   type AchievementProgress,
   ACHIEVEMENTS,
-  getAllAchievements,
 } from '../constants/AchievementConfig';
 import {
   type DifficultyLevel,
