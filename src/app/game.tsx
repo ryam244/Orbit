@@ -23,6 +23,10 @@ export default function GameScreen() {
   const resumeGame = useGameStore((state) => state.resumeGame);
   const bgmVolume = useGameStore((state) => state.bgmVolume);
   const seVolume = useGameStore((state) => state.seVolume);
+  const achievements = useGameStore((state) => state.achievements);
+
+  // Check if ad-free achievement is unlocked
+  const isAdFree = achievements['ad_free']?.unlocked || false;
 
   const { rotateLeft, rotateRight, fastDrop, normalDrop } = useControls();
   const { playSound } = useAudio(bgmVolume, seVolume);
@@ -169,8 +173,17 @@ export default function GameScreen() {
         )}
       </View>
 
+      {/* Banner Ad Placeholder (only show if ad-free not unlocked) */}
+      {!isAdFree && (
+        <View style={styles.adBanner}>
+          <Text style={styles.adBannerText}>
+            🎁 Unlock 10 achievements to remove ads!
+          </Text>
+        </View>
+      )}
+
       {/* Control Areas */}
-      <View style={styles.controlsContainer}>
+      <View style={[styles.controlsContainer, !isAdFree && styles.controlsWithAd]}>
         {/* Left control area */}
         <GestureDetector gesture={Gesture.Race(longPressGesture, tapLeftGesture)}>
           <Pressable style={styles.controlLeft}>
@@ -312,5 +325,26 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '700',
     color: '#ffff00',
+  },
+  adBanner: {
+    position: 'absolute',
+    bottom: 150,
+    left: 0,
+    right: 0,
+    height: 50,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 215, 0, 0.5)',
+  },
+  adBannerText: {
+    fontSize: 12,
+    color: '#ffd700',
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  controlsWithAd: {
+    bottom: 50,
   },
 });

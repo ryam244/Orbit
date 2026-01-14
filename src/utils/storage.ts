@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { DifficultyLevel } from '../constants/DifficultyConfig';
 import type { GameMode } from '../constants/GameModeConfig';
+import type { AchievementId, AchievementProgress } from '../constants/AchievementConfig';
 
 /**
  * Storage keys
@@ -19,6 +20,9 @@ export const STORAGE_KEYS = {
   BGM_VOLUME: '@orbit:bgmVolume',
   SE_VOLUME: '@orbit:seVolume',
   TUTORIAL_COMPLETED: '@orbit:tutorialCompleted', // Tutorial completion flag
+  ACHIEVEMENTS: '@orbit:achievements', // Achievement progress
+  MODES_PLAYED: '@orbit:modesPlayed', // Set of played game modes
+  MAX_COMBO: '@orbit:maxCombo', // All-time max combo
 } as const;
 
 /**
@@ -41,6 +45,9 @@ export type PersistedData = {
   bgmVolume: number; // 0.0 - 1.0
   seVolume: number; // 0.0 - 1.0
   tutorialCompleted: boolean; // Tutorial completion flag
+  achievements: Partial<Record<AchievementId, AchievementProgress>>; // Achievement progress
+  modesPlayed: Set<GameMode>; // Modes that have been played
+  maxCombo: number; // All-time maximum combo
 };
 
 /**
@@ -57,6 +64,9 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       bgmVolumeStr,
       seVolumeStr,
       tutorialCompletedStr,
+      achievementsStr,
+      modesPlayedStr,
+      maxComboStr,
     ] = await Promise.all([
       AsyncStorage.getItem(STORAGE_KEYS.HIGH_SCORE),
       AsyncStorage.getItem(STORAGE_KEYS.GAMES_PLAYED),
@@ -66,6 +76,9 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       AsyncStorage.getItem(STORAGE_KEYS.BGM_VOLUME),
       AsyncStorage.getItem(STORAGE_KEYS.SE_VOLUME),
       AsyncStorage.getItem(STORAGE_KEYS.TUTORIAL_COMPLETED),
+      AsyncStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS),
+      AsyncStorage.getItem(STORAGE_KEYS.MODES_PLAYED),
+      AsyncStorage.getItem(STORAGE_KEYS.MAX_COMBO),
     ]);
 
     const difficultyScores = difficultyScoresStr
@@ -73,6 +86,11 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       : {};
 
     const modeScores = modeScoresStr ? JSON.parse(modeScoresStr) : {};
+
+    const achievements = achievementsStr ? JSON.parse(achievementsStr) : {};
+
+    const modesPlayedArray = modesPlayedStr ? JSON.parse(modesPlayedStr) : [];
+    const modesPlayed = new Set<GameMode>(modesPlayedArray);
 
     return {
       highScore: highScoreStr ? parseInt(highScoreStr, 10) : 0,
@@ -85,6 +103,9 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       bgmVolume: bgmVolumeStr ? parseFloat(bgmVolumeStr) : 0.5,
       seVolume: seVolumeStr ? parseFloat(seVolumeStr) : 0.7,
       tutorialCompleted: tutorialCompletedStr === 'true',
+      achievements,
+      modesPlayed,
+      maxCombo: maxComboStr ? parseInt(maxComboStr, 10) : 0,
     };
   } catch (error) {
     console.error('Failed to load persisted data:', error);
@@ -97,6 +118,9 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       bgmVolume: 0.5,
       seVolume: 0.7,
       tutorialCompleted: false,
+      achievements: {},
+      modesPlayed: new Set(),
+      maxCombo: 0,
     };
   }
 };
@@ -199,10 +223,47 @@ export const saveTutorialCompleted = async (completed: boolean): Promise<void> =
 };
 
 /**
+ * Save achievements to AsyncStorage
+ */
+export const saveAchievements = async (
+  achievements: Partial<Record<AchievementId, AchievementProgress>>
+): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(achievements));
+  } catch (error) {
+    console.error('Failed to save achievements:', error);
+  }
+};
+
+/**
+ * Save modes played to AsyncStorage
+ */
+export const saveModesPlayed = async (modesPlayed: Set<GameMode>): Promise<void> => {
+  try {
+    const modesArray = Array.from(modesPlayed);
+    await AsyncStorage.setItem(STORAGE_KEYS.MODES_PLAYED, JSON.stringify(modesArray));
+  } catch (error) {
+    console.error('Failed to save modes played:', error);
+  }
+};
+
+/**
+ * Save max combo to AsyncStorage
+ */
+export const saveMaxCombo = async (maxCombo: number): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.MAX_COMBO, String(maxCombo));
+  } catch (error) {
+    console.error('Failed to save max combo:', error);
+  }
+};
+
+/**
  * Save all persistent data at once
  */
 export const saveAllData = async (data: PersistedData): Promise<void> => {
   try {
+    const modesArray = Array.from(data.modesPlayed);
     await Promise.all([
       AsyncStorage.setItem(STORAGE_KEYS.HIGH_SCORE, String(data.highScore)),
       AsyncStorage.setItem(STORAGE_KEYS.GAMES_PLAYED, String(data.gamesPlayed)),
@@ -218,6 +279,9 @@ export const saveAllData = async (data: PersistedData): Promise<void> => {
       AsyncStorage.setItem(STORAGE_KEYS.BGM_VOLUME, String(data.bgmVolume)),
       AsyncStorage.setItem(STORAGE_KEYS.SE_VOLUME, String(data.seVolume)),
       AsyncStorage.setItem(STORAGE_KEYS.TUTORIAL_COMPLETED, String(data.tutorialCompleted)),
+      AsyncStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(data.achievements)),
+      AsyncStorage.setItem(STORAGE_KEYS.MODES_PLAYED, JSON.stringify(modesArray)),
+      AsyncStorage.setItem(STORAGE_KEYS.MAX_COMBO, String(data.maxCombo)),
     ]);
   } catch (error) {
     console.error('Failed to save all data:', error);

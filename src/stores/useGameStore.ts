@@ -17,8 +17,17 @@ import {
   saveBGMVolume,
   saveSEVolume,
   saveTutorialCompleted,
+  saveAchievements,
+  saveModesPlayed,
+  saveMaxCombo,
   type DifficultyScore,
 } from '../utils/storage';
+import {
+  type AchievementId,
+  type AchievementProgress,
+  ACHIEVEMENTS,
+  getAllAchievements,
+} from '../constants/AchievementConfig';
 import {
   type DifficultyLevel,
   getDifficultyConfig,
@@ -72,6 +81,9 @@ type GameStore = {
   bgmVolume: number;
   seVolume: number;
   tutorialCompleted: boolean;
+  achievements: Partial<Record<AchievementId, AchievementProgress>>;
+  modesPlayed: Set<GameMode>;
+  maxCombo: number;
 
   // Actions
   startGame: () => void;
@@ -85,6 +97,7 @@ type GameStore = {
   setBGMVolume: (volume: number) => void;
   setSEVolume: (volume: number) => void;
   setTutorialCompleted: (completed: boolean) => void;
+  checkAndUnlockAchievements: () => void;
 
   // Engine updates
   updateEngine: (updates: Partial<EngineState>) => void;
@@ -109,6 +122,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   bgmVolume: 0.5,
   seVolume: 0.7,
   tutorialCompleted: false,
+  achievements: {},
+  modesPlayed: new Set(),
+  maxCombo: 0,
 
   // Start new game
   startGame: () => {
@@ -210,6 +226,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         modeScores: newModeScores,
       };
     });
+
+    // Check and unlock achievements after game ends
+    get().checkAndUnlockAchievements();
   },
 
   // Reset to initial state
@@ -281,6 +300,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       bgmVolume: data.bgmVolume,
       seVolume: data.seVolume,
       tutorialCompleted: data.tutorialCompleted,
+      achievements: data.achievements,
+      modesPlayed: data.modesPlayed,
+      maxCombo: data.maxCombo,
     });
   },
 
@@ -311,5 +333,104 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setTutorialCompleted: (completed) => {
     set({ tutorialCompleted: completed });
     saveTutorialCompleted(completed);
+  },
+
+  // Check and unlock achievements
+  checkAndUnlockAchievements: () => {
+    const state = get();
+    const {
+      engine,
+      gamesPlayed,
+      selectedDifficulty,
+      selectedMode,
+      modesPlayed,
+      maxCombo,
+      achievements: currentAchievements,
+    } = state;
+
+    const newAchievements = { ...currentAchievements };
+    let achievementsChanged = false;
+
+    // Helper function to unlock achievement
+    const unlockAchievement = (id: AchievementId, progress: number) => {
+      const achievement = ACHIEVEMENTS[id];
+      const current = newAchievements[id];
+
+      // Update progress
+      if (!current || current.progress < progress) {
+        newAchievements[id] = {
+          unlocked: progress >= achievement.requirement,
+          progress,
+          unlockedAt: progress >= achievement.requirement ? Date.now() : current?.unlockedAt,
+        };
+        achievementsChanged = true;
+      }
+    };
+
+    // Check all achievements
+    const score = engine.score;
+    const combo = engine.combo;
+
+    // Update max combo if current combo is higher
+    let newMaxCombo = maxCombo;
+    if (combo > maxCombo) {
+      newMaxCombo = combo;
+      saveMaxCombo(newMaxCombo);
+    }
+
+    // Add current mode to modes played
+    const newModesPlayed = new Set(modesPlayed);
+    if (!newModesPlayed.has(selectedMode)) {
+      newModesPlayed.add(selectedMode);
+      saveModesPlayed(newModesPlayed);
+    }
+
+    // Beginner achievements
+    unlockAchievement('first_game', gamesPlayed);
+    unlockAchievement('games_10', gamesPlayed);
+    unlockAchievement('games_50', gamesPlayed);
+    unlockAchievement('games_100', gamesPlayed);
+
+    // Score achievements
+    unlockAchievement('score_1000', score >= 1000 ? score : 0);
+    unlockAchievement('score_5000', score >= 5000 ? score : 0);
+    unlockAchievement('score_10000', score >= 10000 ? score : 0);
+    unlockAchievement('score_25000', score >= 25000 ? score : 0);
+    unlockAchievement('score_50000', score >= 50000 ? score : 0);
+
+    // Combo achievements
+    unlockAchievement('combo_5', newMaxCombo >= 5 ? newMaxCombo : 0);
+    unlockAchievement('combo_10', newMaxCombo >= 10 ? newMaxCombo : 0);
+    unlockAchievement('combo_15', newMaxCombo >= 15 ? newMaxCombo : 0);
+
+    // Mastery achievements
+    unlockAchievement('all_modes', newModesPlayed.size);
+    unlockAchievement('difficulty_7', selectedDifficulty >= 7 ? selectedDifficulty : 0);
+    unlockAchievement('difficulty_10', selectedDifficulty >= 10 ? selectedDifficulty : 0);
+
+    // Mode-specific achievements
+    if (selectedMode === 'timeAttack') {
+      unlockAchievement('speed_demon', score >= 3000 ? score : 0);
+      unlockAchievement('time_attack_pro', score >= 5000 ? score : 0);
+    }
+    if (selectedMode === 'endless') {
+      unlockAchievement('endless_master', score >= 10000 ? score : 0);
+    }
+
+    // Special achievement: ad-free (10 achievements unlocked)
+    const unlockedCount = Object.values(newAchievements).filter(
+      (a) => a.unlocked
+    ).length;
+    unlockAchievement('ad_free', unlockedCount);
+
+    // Save if achievements changed
+    if (achievementsChanged) {
+      saveAchievements(newAchievements);
+      set({
+        achievements: newAchievements,
+        modesPlayed: newModesPlayed,
+        maxCombo: newMaxCombo,
+      });
+    }
   },
 }));

@@ -78,6 +78,12 @@ export default function TitleScreen() {
           </Pressable>
         </Link>
 
+        <Link href="/achievements" asChild>
+          <Pressable style={styles.tertiaryButton}>
+            <Text style={styles.tertiaryText}>🏆 ACHIEVEMENTS</Text>
+          </Pressable>
+        </Link>
+
         <Link href="/tutorial" asChild>
           <Pressable style={styles.tertiaryButton}>
             <Text style={styles.tertiaryText}>❓ HOW TO PLAY</Text>
