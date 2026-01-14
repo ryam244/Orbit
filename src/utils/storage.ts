@@ -14,6 +14,8 @@ export const STORAGE_KEYS = {
   GAMES_PLAYED: '@orbit:gamesPlayed',
   SELECTED_DIFFICULTY: '@orbit:selectedDifficulty',
   DIFFICULTY_SCORES: '@orbit:difficultyScores', // High scores per difficulty
+  BGM_VOLUME: '@orbit:bgmVolume',
+  SE_VOLUME: '@orbit:seVolume',
 } as const;
 
 /**
@@ -32,6 +34,8 @@ export type PersistedData = {
   gamesPlayed: number;
   selectedDifficulty: DifficultyLevel;
   difficultyScores: Partial<Record<DifficultyLevel, DifficultyScore>>;
+  bgmVolume: number; // 0.0 - 1.0
+  seVolume: number; // 0.0 - 1.0
 };
 
 /**
@@ -39,13 +43,21 @@ export type PersistedData = {
  */
 export const loadPersistedData = async (): Promise<PersistedData> => {
   try {
-    const [highScoreStr, gamesPlayedStr, selectedDifficultyStr, difficultyScoresStr] =
-      await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.HIGH_SCORE),
-        AsyncStorage.getItem(STORAGE_KEYS.GAMES_PLAYED),
-        AsyncStorage.getItem(STORAGE_KEYS.SELECTED_DIFFICULTY),
-        AsyncStorage.getItem(STORAGE_KEYS.DIFFICULTY_SCORES),
-      ]);
+    const [
+      highScoreStr,
+      gamesPlayedStr,
+      selectedDifficultyStr,
+      difficultyScoresStr,
+      bgmVolumeStr,
+      seVolumeStr,
+    ] = await Promise.all([
+      AsyncStorage.getItem(STORAGE_KEYS.HIGH_SCORE),
+      AsyncStorage.getItem(STORAGE_KEYS.GAMES_PLAYED),
+      AsyncStorage.getItem(STORAGE_KEYS.SELECTED_DIFFICULTY),
+      AsyncStorage.getItem(STORAGE_KEYS.DIFFICULTY_SCORES),
+      AsyncStorage.getItem(STORAGE_KEYS.BGM_VOLUME),
+      AsyncStorage.getItem(STORAGE_KEYS.SE_VOLUME),
+    ]);
 
     const difficultyScores = difficultyScoresStr
       ? JSON.parse(difficultyScoresStr)
@@ -58,6 +70,8 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
         ? (parseInt(selectedDifficultyStr, 10) as DifficultyLevel)
         : 4, // Default to Normal
       difficultyScores,
+      bgmVolume: bgmVolumeStr ? parseFloat(bgmVolumeStr) : 0.5,
+      seVolume: seVolumeStr ? parseFloat(seVolumeStr) : 0.7,
     };
   } catch (error) {
     console.error('Failed to load persisted data:', error);
@@ -66,6 +80,8 @@ export const loadPersistedData = async (): Promise<PersistedData> => {
       gamesPlayed: 0,
       selectedDifficulty: 4,
       difficultyScores: {},
+      bgmVolume: 0.5,
+      seVolume: 0.7,
     };
   }
 };
@@ -122,6 +138,28 @@ export const saveDifficultyScores = async (
 };
 
 /**
+ * Save BGM volume to AsyncStorage
+ */
+export const saveBGMVolume = async (volume: number): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.BGM_VOLUME, String(volume));
+  } catch (error) {
+    console.error('Failed to save BGM volume:', error);
+  }
+};
+
+/**
+ * Save SE volume to AsyncStorage
+ */
+export const saveSEVolume = async (volume: number): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.SE_VOLUME, String(volume));
+  } catch (error) {
+    console.error('Failed to save SE volume:', error);
+  }
+};
+
+/**
  * Save all persistent data at once
  */
 export const saveAllData = async (data: PersistedData): Promise<void> => {
@@ -137,6 +175,8 @@ export const saveAllData = async (data: PersistedData): Promise<void> => {
         STORAGE_KEYS.DIFFICULTY_SCORES,
         JSON.stringify(data.difficultyScores)
       ),
+      AsyncStorage.setItem(STORAGE_KEYS.BGM_VOLUME, String(data.bgmVolume)),
+      AsyncStorage.setItem(STORAGE_KEYS.SE_VOLUME, String(data.seVolume)),
     ]);
   } catch (error) {
     console.error('Failed to save all data:', error);

@@ -13,6 +13,8 @@ import {
   saveGamesPlayed,
   saveSelectedDifficulty,
   saveDifficultyScores,
+  saveBGMVolume,
+  saveSEVolume,
   type DifficultyScore,
 } from '../utils/storage';
 import {
@@ -57,6 +59,8 @@ type GameStore = {
   gamesPlayed: number;
   selectedDifficulty: DifficultyLevel;
   difficultyScores: Partial<Record<DifficultyLevel, DifficultyScore>>;
+  bgmVolume: number;
+  seVolume: number;
 
   // Actions
   startGame: () => void;
@@ -66,6 +70,8 @@ type GameStore = {
   resetGame: () => void;
   loadPersistedData: () => Promise<void>;
   setDifficulty: (difficulty: DifficultyLevel) => void;
+  setBGMVolume: (volume: number) => void;
+  setSEVolume: (volume: number) => void;
 
   // Engine updates
   updateEngine: (updates: Partial<EngineState>) => void;
@@ -85,6 +91,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gamesPlayed: 0,
   selectedDifficulty: DEFAULT_DIFFICULTY,
   difficultyScores: {},
+  bgmVolume: 0.5,
+  seVolume: 0.7,
 
   // Start new game
   startGame: () => {
@@ -233,6 +241,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gamesPlayed: data.gamesPlayed,
       selectedDifficulty: data.selectedDifficulty,
       difficultyScores: data.difficultyScores,
+      bgmVolume: data.bgmVolume,
+      seVolume: data.seVolume,
     });
   },
 
@@ -240,5 +250,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setDifficulty: (difficulty) => {
     set({ selectedDifficulty: difficulty });
     saveSelectedDifficulty(difficulty);
+  },
+
+  // Set BGM volume
+  setBGMVolume: (volume) => {
+    set({ bgmVolume: volume });
+    saveBGMVolume(volume);
+  },
+
+  // Set SE volume
+  setSEVolume: (volume) => {
+    set({ seVolume: volume });
+    saveSEVolume(volume);
   },
 }));

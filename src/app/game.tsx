@@ -10,6 +10,7 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { useGameStore } from '../stores/useGameStore';
 import { useFrameLoop } from '../runtime/useFrameLoop';
 import { useControls } from '../runtime/useControls';
+import { useAudio } from '../runtime/useAudio';
 import { GameCanvas } from '../runtime/render/GameCanvas';
 import { updateParticles } from '../runtime/render/EffectLayer';
 import type { Particle } from '../runtime/render/EffectLayer';
@@ -20,12 +21,19 @@ export default function GameScreen() {
   const startGame = useGameStore((state) => state.startGame);
   const pauseGame = useGameStore((state) => state.pauseGame);
   const resumeGame = useGameStore((state) => state.resumeGame);
+  const bgmVolume = useGameStore((state) => state.bgmVolume);
+  const seVolume = useGameStore((state) => state.seVolume);
 
   const { rotateLeft, rotateRight, fastDrop, normalDrop } = useControls();
+  const { playSound } = useAudio(bgmVolume, seVolume);
 
   // Particle system state
   const [particles, setParticles] = useState<Particle[]>([]);
   const lastUpdateTime = useRef(Date.now());
+
+  // Track previous values for change detection
+  const prevScoreRef = useRef(0);
+  const prevComboRef = useRef(0);
 
   // Initialize frame loop
   useFrameLoop();
@@ -55,6 +63,7 @@ export default function GameScreen() {
   // Navigate to result screen on game over
   useEffect(() => {
     if (engine.status === 'GAME_OVER') {
+      playSound('gameOver');
       const timer = setTimeout(() => {
         router.push('/result');
       }, 2000); // 2 second delay to show final state
@@ -63,6 +72,28 @@ export default function GameScreen() {
     }
   }, [engine.status, router]);
 
+  // Play sound effects on score/combo changes
+  useEffect(() => {
+    // Skip initial mount
+    if (prevScoreRef.current === 0 && engine.score === 0) {
+      prevScoreRef.current = engine.score;
+      prevComboRef.current = engine.combo;
+      return;
+    }
+
+    // Score increased = match occurred
+    if (engine.score > prevScoreRef.current) {
+      if (engine.combo > prevComboRef.current && engine.combo > 1) {
+        playSound('combo');
+      } else {
+        playSound('match');
+      }
+    }
+
+    prevScoreRef.current = engine.score;
+    prevComboRef.current = engine.combo;
+  }, [engine.score, engine.combo]);
+
   /**
    * Gesture handlers for touch controls
    */
@@ -70,6 +101,7 @@ export default function GameScreen() {
   const tapLeftGesture = Gesture.Tap()
     .onEnd(() => {
       rotateLeft();
+      playSound('rotate');
     })
     .runOnJS(true);
 
@@ -77,6 +109,7 @@ export default function GameScreen() {
   const tapRightGesture = Gesture.Tap()
     .onEnd(() => {
       rotateRight();
+      playSound('rotate');
     })
     .runOnJS(true);
 
@@ -85,6 +118,7 @@ export default function GameScreen() {
     .minDuration(100)
     .onStart(() => {
       fastDrop();
+      playSound('drop');
     })
     .onEnd(() => {
       normalDrop();
