@@ -585,7 +585,19 @@ grid は TypedArray 以外にしない（性能保証）
 - [x] ゲーム画面統合
   - [x] app/game.tsx - 完全なゲームループ＋HUD＋操作
 
-**Phase 3: ゲームフロー統合** - 🔜 次のステップ
+**Phase 3: ゲームフロー統合** - ✅ 完了 (2026-01-14)
+
+- [x] タイトル画面実装
+  - [x] app/index.tsx - サイバーパンク風デザイン
+  - [x] ハイスコア/プレイ回数表示
+  - [x] グロー効果とネオンテーマ
+- [x] リザルト画面実装
+  - [x] app/result.tsx - スコア表示＋演出
+  - [x] スコアカウントアップアニメーション
+  - [x] ハイスコア更新時の「NEW RECORD」バッジ
+  - [x] リトライ/タイトル戻るボタン
+
+**Phase 4: エフェクトとポリッシュ** - 🔜 次のステップ
 
 **Completed Features**:
 - ✅ ブロック落下システム（速度調整可能）
@@ -599,6 +611,10 @@ grid は TypedArray 以外にしない（性能保証）
 - ✅ HUD（スコア、コンボ表示）
 - ✅ Pause/Resume機能
 - ✅ Game Over検出と遷移
+- ✅ サイバーパンク風タイトル画面
+- ✅ スコアアニメーション付きリザルト画面
+- ✅ ハイスコア記録とNEW RECORD演出
+- ✅ 完全なゲームフロー（Title → Game → Result → Title）
 
 **Known Issues**:
 - ⚠️ @shopify/react-native-skia のインストール未完了
