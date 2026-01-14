@@ -601,16 +601,29 @@ grid は TypedArray 以外にしない（性能保証）
 - ✅ Game Over検出と遷移
 
 **Known Issues**:
-- ⚠️ 依存関係のインストールが未完了
-  - zustand
-  - react-native-reanimated
-  - react-native-gesture-handler
-  - @shopify/react-native-skia
-- ℹ️ これらは `npm install` でインストール必要
+- ⚠️ @shopify/react-native-skia のインストール未完了
+  - ネットワークエラーでバイナリダウンロードに失敗
+  - ネットワーク環境で `npm install @shopify/react-native-skia` を実行必要
+- ✅ その他の依存関係はインストール済み
+  - zustand (v5.0.10)
+  - react-native-reanimated (v4.2.1)
+  - react-native-gesture-handler (v2.30.0)
+
+**Configuration**:
+- ✅ babel.config.js に reanimated プラグイン追加
+- ✅ _layout.tsx に GestureHandlerRootView 追加
+- ✅ package.json に全依存関係記録
 
 **Next Steps**:
-1. 依存関係のインストール完了
-2. 実機/シミュレータでの動作確認
+1. ネットワーク環境で Skia をインストール
+   ```bash
+   npm install @shopify/react-native-skia
+   ```
+2. アプリ起動とデモプレイ
+   ```bash
+   npm start
+   # Then press 'i' for iOS or 'a' for Android
+   ```
 3. 難易度調整（落下速度、マッチ難易度）
 4. タイトル画面とリザルト画面の実装
 5. サウンド追加（BGM、SE）
