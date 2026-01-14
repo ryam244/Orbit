@@ -7,10 +7,14 @@ import React from 'react';
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGameStore } from '../stores/useGameStore';
+import { getDifficultyConfig } from '../constants/DifficultyConfig';
 
 export default function TitleScreen() {
   const highScore = useGameStore((state) => state.highScore);
   const gamesPlayed = useGameStore((state) => state.gamesPlayed);
+  const selectedDifficulty = useGameStore((state) => state.selectedDifficulty);
+
+  const difficultyConfig = getDifficultyConfig(selectedDifficulty);
 
   return (
     <View style={styles.container}>
@@ -46,9 +50,17 @@ export default function TitleScreen() {
           </Pressable>
         </Link>
 
-        <Link href="/result" asChild>
+        <Link href="/difficulty" asChild>
           <Pressable style={styles.secondaryButton}>
-            <Text style={styles.secondaryText}>📊 STATISTICS</Text>
+            <Text style={styles.secondaryText}>
+              ⚙ DIFFICULTY: {difficultyConfig.name.toUpperCase()}
+            </Text>
+          </Pressable>
+        </Link>
+
+        <Link href="/result" asChild>
+          <Pressable style={styles.tertiaryButton}>
+            <Text style={styles.tertiaryText}>📊 STATISTICS</Text>
           </Pressable>
         </Link>
       </View>
@@ -186,7 +198,21 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: '#ff00ff',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  tertiaryButton: {
+    borderWidth: 2,
+    borderColor: '#666',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  tertiaryText: {
+    color: '#999',
+    fontSize: 14,
     fontWeight: '700',
     letterSpacing: 2,
   },

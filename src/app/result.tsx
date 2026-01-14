@@ -7,39 +7,58 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGameStore } from '../stores/useGameStore';
+import {
+  getDifficultyConfig,
+  calculateNormalizedScore,
+} from '../constants/DifficultyConfig';
 
 export default function ResultScreen() {
   const router = useRouter();
   const engine = useGameStore((state) => state.engine);
   const highScore = useGameStore((state) => state.highScore);
+  const selectedDifficulty = useGameStore((state) => state.selectedDifficulty);
+  const difficultyScores = useGameStore((state) => state.difficultyScores);
   const resetGame = useGameStore((state) => state.resetGame);
 
   const [displayScore, setDisplayScore] = useState(0);
+  const [displayNormalizedScore, setDisplayNormalizedScore] = useState(0);
   const [showNewRecord, setShowNewRecord] = useState(false);
 
   const finalScore = engine.score;
   const maxCombo = engine.combo;
-  const isNewRecord = finalScore > 0 && finalScore >= highScore;
+  const difficultyConfig = getDifficultyConfig(selectedDifficulty);
+  const normalizedScore = calculateNormalizedScore(finalScore, selectedDifficulty);
+
+  // Check if this is a new record for this difficulty
+  const previousBest = difficultyScores[selectedDifficulty];
+  const isNewRecord =
+    normalizedScore > 0 &&
+    (!previousBest || normalizedScore > previousBest.normalizedScore);
 
   // Score count-up animation
   useEffect(() => {
     if (finalScore === 0) {
       setDisplayScore(0);
+      setDisplayNormalizedScore(0);
       return;
     }
 
     const duration = 2000; // 2 seconds
     const steps = 60;
-    const increment = finalScore / steps;
-    let current = 0;
+    const rawIncrement = finalScore / steps;
+    const normalizedIncrement = normalizedScore / steps;
+    let currentRaw = 0;
+    let currentNormalized = 0;
     let step = 0;
 
     const interval = setInterval(() => {
       step++;
-      current += increment;
+      currentRaw += rawIncrement;
+      currentNormalized += normalizedIncrement;
 
       if (step >= steps) {
         setDisplayScore(finalScore);
+        setDisplayNormalizedScore(normalizedScore);
         clearInterval(interval);
 
         // Show new record after count-up
@@ -47,12 +66,13 @@ export default function ResultScreen() {
           setTimeout(() => setShowNewRecord(true), 300);
         }
       } else {
-        setDisplayScore(Math.floor(current));
+        setDisplayScore(Math.floor(currentRaw));
+        setDisplayNormalizedScore(Math.floor(currentNormalized));
       }
     }, duration / steps);
 
     return () => clearInterval(interval);
-  }, [finalScore, isNewRecord]);
+  }, [finalScore, normalizedScore, isNewRecord]);
 
   const handleRetry = () => {
     resetGame();
@@ -81,9 +101,21 @@ export default function ResultScreen() {
           </View>
         )}
 
-        {/* Final score */}
-        <Text style={styles.scoreLabel}>FINAL SCORE</Text>
-        <Text style={styles.scoreValue}>{displayScore.toLocaleString()}</Text>
+        {/* Difficulty info */}
+        <Text style={styles.difficultyLabel}>
+          {difficultyConfig.name.toUpperCase()} (LV.{selectedDifficulty})
+        </Text>
+
+        {/* Normalized score (primary) */}
+        <Text style={styles.scoreLabel}>NORMALIZED SCORE</Text>
+        <Text style={styles.scoreValue}>
+          {displayNormalizedScore.toLocaleString()}
+        </Text>
+
+        {/* Raw score (secondary) */}
+        <Text style={styles.rawScoreText}>
+          Raw: {displayScore.toLocaleString()} × {difficultyConfig.scoreMultiplier}
+        </Text>
 
         {/* Stats row */}
         <View style={styles.statsRow}>
@@ -93,8 +125,12 @@ export default function ResultScreen() {
           </View>
           <View style={styles.divider} />
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>HIGH SCORE</Text>
-            <Text style={styles.statValue}>{highScore.toLocaleString()}</Text>
+            <Text style={styles.statLabel}>BEST (THIS DIFF)</Text>
+            <Text style={styles.statValue}>
+              {previousBest
+                ? previousBest.normalizedScore.toLocaleString()
+                : '-'}
+            </Text>
           </View>
         </View>
       </View>
@@ -170,6 +206,13 @@ const styles = StyleSheet.create({
     color: '#000',
     letterSpacing: 2,
   },
+  difficultyLabel: {
+    fontSize: 12,
+    color: '#ff00ff',
+    letterSpacing: 2,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
   scoreLabel: {
     fontSize: 12,
     color: '#666',
@@ -180,10 +223,15 @@ const styles = StyleSheet.create({
     fontSize: 64,
     fontWeight: '900',
     color: '#00ffff',
-    marginBottom: 32,
+    marginBottom: 12,
     textShadowColor: '#00ffff',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
+  },
+  rawScoreText: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 24,
   },
   statsRow: {
     flexDirection: 'row',

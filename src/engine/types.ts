@@ -6,9 +6,9 @@
 /**
  * Block color enumeration
  * 0 = EMPTY (no block)
- * 1-4 = Actual block colors (CYAN, MAGENTA, YELLOW, GREEN, etc.)
+ * 1-6 = Actual block colors (CYAN, MAGENTA, YELLOW, GREEN, ORANGE, BLUE)
  */
-export type BlockColor = 0 | 1 | 2 | 3 | 4;
+export type BlockColor = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * Grid index for 1D array representation

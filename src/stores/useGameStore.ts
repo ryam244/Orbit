@@ -11,7 +11,16 @@ import {
   loadPersistedData,
   saveHighScore,
   saveGamesPlayed,
+  saveSelectedDifficulty,
+  saveDifficultyScores,
+  type DifficultyScore,
 } from '../utils/storage';
+import {
+  type DifficultyLevel,
+  getDifficultyConfig,
+  calculateNormalizedScore,
+  DEFAULT_DIFFICULTY,
+} from '../constants/DifficultyConfig';
 
 /**
  * Create initial empty grid
@@ -44,8 +53,10 @@ type GameStore = {
   engine: EngineState;
 
   // Persistent data
-  highScore: number;
+  highScore: number; // Legacy - overall high score
   gamesPlayed: number;
+  selectedDifficulty: DifficultyLevel;
+  difficultyScores: Partial<Record<DifficultyLevel, DifficultyScore>>;
 
   // Actions
   startGame: () => void;
@@ -54,6 +65,7 @@ type GameStore = {
   endGame: () => void;
   resetGame: () => void;
   loadPersistedData: () => Promise<void>;
+  setDifficulty: (difficulty: DifficultyLevel) => void;
 
   // Engine updates
   updateEngine: (updates: Partial<EngineState>) => void;
@@ -71,15 +83,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
   engine: createInitialEngineState(),
   highScore: 0,
   gamesPlayed: 0,
+  selectedDifficulty: DEFAULT_DIFFICULTY,
+  difficultyScores: {},
 
   // Start new game
   startGame: () => {
     const newGamesPlayed = get().gamesPlayed + 1;
+    const difficulty = get().selectedDifficulty;
+    const difficultyConfig = getDifficultyConfig(difficulty);
+
     set({
       engine: {
         ...createInitialEngineState(),
         status: 'PLAYING',
         musicStartMs: Date.now(),
+        // Note: Initial velocity will be set when first block spawns
+        // ColorCount will be used in spawn function via difficulty config
       },
       gamesPlayed: newGamesPlayed,
     });
@@ -110,10 +129,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // End game
   endGame: () => {
     set((state) => {
-      const newHighScore = Math.max(state.highScore, state.engine.score);
+      const rawScore = state.engine.score;
+      const difficulty = state.selectedDifficulty;
+      const normalizedScore = calculateNormalizedScore(rawScore, difficulty);
+
+      // Update legacy high score
+      const newHighScore = Math.max(state.highScore, rawScore);
       const highScoreChanged = newHighScore > state.highScore;
 
-      // Save high score if it changed
+      // Update difficulty-specific high score
+      const currentDifficultyScore = state.difficultyScores[difficulty];
+      const newDifficultyScores = { ...state.difficultyScores };
+
+      if (
+        !currentDifficultyScore ||
+        normalizedScore > currentDifficultyScore.normalizedScore
+      ) {
+        newDifficultyScores[difficulty] = {
+          rawScore,
+          normalizedScore,
+        };
+        saveDifficultyScores(newDifficultyScores);
+      }
+
+      // Save legacy high score if it changed
       if (highScoreChanged) {
         saveHighScore(newHighScore);
       }
@@ -124,6 +163,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           status: 'GAME_OVER',
         },
         highScore: newHighScore,
+        difficultyScores: newDifficultyScores,
       };
     });
   },
@@ -191,6 +231,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       highScore: data.highScore,
       gamesPlayed: data.gamesPlayed,
+      selectedDifficulty: data.selectedDifficulty,
+      difficultyScores: data.difficultyScores,
     });
+  },
+
+  // Set selected difficulty
+  setDifficulty: (difficulty) => {
+    set({ selectedDifficulty: difficulty });
+    saveSelectedDifficulty(difficulty);
   },
 }));

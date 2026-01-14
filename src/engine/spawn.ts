@@ -49,12 +49,14 @@ function isSectorFree(grid: Uint8Array, ring: number, sector: number): boolean {
 }
 
 /**
- * Generates a random block color (1-4)
+ * Generates a random block color (1-6)
  * Used for determining the next block color
  *
- * @param colorCount - Number of colors available (default: 4)
+ * @param colorCount - Number of colors available (2-6, default: 4)
  * @returns Random color (1 to colorCount)
  */
-export const randomColor = (colorCount: number = 4): 1 | 2 | 3 | 4 => {
-  return (Math.floor(Math.random() * colorCount) + 1) as 1 | 2 | 3 | 4;
+export const randomColor = (
+  colorCount: number = 4
+): 1 | 2 | 3 | 4 | 5 | 6 => {
+  return (Math.floor(Math.random() * colorCount) + 1) as 1 | 2 | 3 | 4 | 5 | 6;
 };

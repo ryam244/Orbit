@@ -25,6 +25,8 @@ const BLOCK_COLORS: Record<Exclude<BlockColor, 0>, string> = {
   2: '#ff00ff', // Magenta
   3: '#ffff00', // Yellow
   4: '#00ff00', // Green
+  5: '#ff6600', // Orange
+  6: '#0088ff', // Blue
 };
 
 const BLOCK_RADIUS = 8; // Visual radius of blocks
