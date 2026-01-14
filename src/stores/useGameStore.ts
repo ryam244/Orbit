@@ -23,6 +23,10 @@ import {
   calculateNormalizedScore,
   DEFAULT_DIFFICULTY,
 } from '../constants/DifficultyConfig';
+import {
+  type GameMode,
+  DEFAULT_GAME_MODE,
+} from '../constants/GameModeConfig';
 
 /**
  * Create initial empty grid
@@ -58,6 +62,7 @@ type GameStore = {
   highScore: number; // Legacy - overall high score
   gamesPlayed: number;
   selectedDifficulty: DifficultyLevel;
+  selectedMode: GameMode;
   difficultyScores: Partial<Record<DifficultyLevel, DifficultyScore>>;
   bgmVolume: number;
   seVolume: number;
@@ -70,6 +75,7 @@ type GameStore = {
   resetGame: () => void;
   loadPersistedData: () => Promise<void>;
   setDifficulty: (difficulty: DifficultyLevel) => void;
+  setMode: (mode: GameMode) => void;
   setBGMVolume: (volume: number) => void;
   setSEVolume: (volume: number) => void;
 
@@ -90,6 +96,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   highScore: 0,
   gamesPlayed: 0,
   selectedDifficulty: DEFAULT_DIFFICULTY,
+  selectedMode: DEFAULT_GAME_MODE,
   difficultyScores: {},
   bgmVolume: 0.5,
   seVolume: 0.7,
@@ -250,6 +257,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setDifficulty: (difficulty) => {
     set({ selectedDifficulty: difficulty });
     saveSelectedDifficulty(difficulty);
+  },
+
+  // Set selected mode
+  setMode: (mode) => {
+    set({ selectedMode: mode });
   },
 
   // Set BGM volume

@@ -8,13 +8,16 @@ import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGameStore } from '../stores/useGameStore';
 import { getDifficultyConfig } from '../constants/DifficultyConfig';
+import { getGameModeConfig } from '../constants/GameModeConfig';
 
 export default function TitleScreen() {
   const highScore = useGameStore((state) => state.highScore);
   const gamesPlayed = useGameStore((state) => state.gamesPlayed);
   const selectedDifficulty = useGameStore((state) => state.selectedDifficulty);
+  const selectedMode = useGameStore((state) => state.selectedMode);
 
   const difficultyConfig = getDifficultyConfig(selectedDifficulty);
+  const modeConfig = getGameModeConfig(selectedMode);
 
   return (
     <View style={styles.container}>
@@ -43,9 +46,11 @@ export default function TitleScreen() {
 
       {/* Button section */}
       <View style={styles.buttonStack}>
-        <Link href="/game" asChild>
+        <Link href="/mode" asChild>
           <Pressable style={styles.button}>
-            <Text style={styles.buttonText}>▶ START GAME</Text>
+            <Text style={styles.buttonText}>
+              {modeConfig.icon} {modeConfig.name.toUpperCase()}
+            </Text>
             <View style={styles.buttonGlow} />
           </Pressable>
         </Link>
