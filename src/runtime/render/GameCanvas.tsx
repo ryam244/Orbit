@@ -8,6 +8,7 @@ import { StyleSheet, Dimensions } from 'react-native';
 import { Canvas } from '@shopify/react-native-skia';
 import { CoreRenderer } from './CoreRenderer';
 import { BlockRenderer } from './BlockRenderer';
+import { EffectLayer } from './EffectLayer';
 import { useGameStore } from '../../stores/useGameStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -22,12 +23,16 @@ export const CANVAS_CENTER_Y = CANVAS_HEIGHT / 2;
 
 type GameCanvasProps = {
   debug?: boolean;
+  particles?: any[]; // Particle array passed from parent
 };
 
 /**
  * Main game canvas component
  */
-export const GameCanvas: React.FC<GameCanvasProps> = ({ debug = false }) => {
+export const GameCanvas: React.FC<GameCanvasProps> = ({
+  debug = false,
+  particles = []
+}) => {
   const engine = useGameStore((state) => state.engine);
 
   return (
@@ -47,7 +52,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ debug = false }) => {
         activeBlock={engine.active}
       />
 
-      {/* TODO: Effect layer (particles, animations) */}
+      {/* Effect layer (particles, animations) */}
+      <EffectLayer
+        centerX={CANVAS_CENTER_X}
+        centerY={CANVAS_CENTER_Y}
+        particles={particles}
+      />
     </Canvas>
   );
 };

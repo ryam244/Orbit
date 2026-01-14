@@ -3,7 +3,7 @@
  * Integrates all game components: canvas, controls, HUD
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -11,6 +11,8 @@ import { useGameStore } from '../stores/useGameStore';
 import { useFrameLoop } from '../runtime/useFrameLoop';
 import { useControls } from '../runtime/useControls';
 import { GameCanvas } from '../runtime/render/GameCanvas';
+import { updateParticles } from '../runtime/render/EffectLayer';
+import type { Particle } from '../runtime/render/EffectLayer';
 
 export default function GameScreen() {
   const router = useRouter();
@@ -21,8 +23,27 @@ export default function GameScreen() {
 
   const { rotateLeft, rotateRight, fastDrop, normalDrop } = useControls();
 
+  // Particle system state
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const lastUpdateTime = useRef(Date.now());
+
   // Initialize frame loop
   useFrameLoop();
+
+  // Update particles every frame
+  useEffect(() => {
+    if (engine.status !== 'PLAYING') return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const deltaSeconds = (now - lastUpdateTime.current) / 1000;
+      lastUpdateTime.current = now;
+
+      setParticles((prev) => updateParticles(prev, deltaSeconds));
+    }, 1000 / 60); // 60 FPS
+
+    return () => clearInterval(interval);
+  }, [engine.status]);
 
   // Auto-start game on mount
   useEffect(() => {
@@ -84,7 +105,7 @@ export default function GameScreen() {
   return (
     <View style={styles.container}>
       {/* Game Canvas */}
-      <GameCanvas debug={false} />
+      <GameCanvas debug={false} particles={particles} />
 
       {/* HUD */}
       <View style={styles.hud}>
