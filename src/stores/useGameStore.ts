@@ -7,6 +7,11 @@ import { create } from 'zustand';
 import { GameConfig } from '../constants/GameConfig';
 import type { EngineState, ActiveBlock } from '../engine/types';
 import { randomColor } from '../engine/spawn';
+import {
+  loadPersistedData,
+  saveHighScore,
+  saveGamesPlayed,
+} from '../utils/storage';
 
 /**
  * Create initial empty grid
@@ -48,6 +53,7 @@ type GameStore = {
   resumeGame: () => void;
   endGame: () => void;
   resetGame: () => void;
+  loadPersistedData: () => Promise<void>;
 
   // Engine updates
   updateEngine: (updates: Partial<EngineState>) => void;
@@ -68,14 +74,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Start new game
   startGame: () => {
+    const newGamesPlayed = get().gamesPlayed + 1;
     set({
       engine: {
         ...createInitialEngineState(),
         status: 'PLAYING',
         musicStartMs: Date.now(),
       },
-      gamesPlayed: get().gamesPlayed + 1,
+      gamesPlayed: newGamesPlayed,
     });
+    // Save games played count
+    saveGamesPlayed(newGamesPlayed);
   },
 
   // Pause game
@@ -102,6 +111,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   endGame: () => {
     set((state) => {
       const newHighScore = Math.max(state.highScore, state.engine.score);
+      const highScoreChanged = newHighScore > state.highScore;
+
+      // Save high score if it changed
+      if (highScoreChanged) {
+        saveHighScore(newHighScore);
+      }
+
       return {
         engine: {
           ...state.engine,
@@ -167,5 +183,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         combo,
       },
     }));
+  },
+
+  // Load persisted data from AsyncStorage
+  loadPersistedData: async () => {
+    const data = await loadPersistedData();
+    set({
+      highScore: data.highScore,
+      gamesPlayed: data.gamesPlayed,
+    });
   },
 }));
