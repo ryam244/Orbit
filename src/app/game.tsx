@@ -3,14 +3,17 @@
  * Integrates all game components: canvas, controls, HUD
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { useGameStore } from '../stores/useGameStore';
 import { useFrameLoop } from '../runtime/useFrameLoop';
 import { useControls } from '../runtime/useControls';
+import { useAudio } from '../runtime/useAudio';
 import { GameCanvas } from '../runtime/render/GameCanvas';
+import { updateParticles } from '../runtime/render/EffectLayer';
+import type { Particle } from '../runtime/render/EffectLayer';
 
 export default function GameScreen() {
   const router = useRouter();
@@ -18,11 +21,41 @@ export default function GameScreen() {
   const startGame = useGameStore((state) => state.startGame);
   const pauseGame = useGameStore((state) => state.pauseGame);
   const resumeGame = useGameStore((state) => state.resumeGame);
+  const bgmVolume = useGameStore((state) => state.bgmVolume);
+  const seVolume = useGameStore((state) => state.seVolume);
+  const achievements = useGameStore((state) => state.achievements);
+
+  // Check if ad-free achievement is unlocked
+  const isAdFree = achievements['ad_free']?.unlocked || false;
 
   const { rotateLeft, rotateRight, fastDrop, normalDrop } = useControls();
+  const { playSound } = useAudio(bgmVolume, seVolume);
+
+  // Particle system state
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const lastUpdateTime = useRef(Date.now());
+
+  // Track previous values for change detection
+  const prevScoreRef = useRef(0);
+  const prevComboRef = useRef(0);
 
   // Initialize frame loop
   useFrameLoop();
+
+  // Update particles every frame
+  useEffect(() => {
+    if (engine.status !== 'PLAYING') return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const deltaSeconds = (now - lastUpdateTime.current) / 1000;
+      lastUpdateTime.current = now;
+
+      setParticles((prev) => updateParticles(prev, deltaSeconds));
+    }, 1000 / 60); // 60 FPS
+
+    return () => clearInterval(interval);
+  }, [engine.status]);
 
   // Auto-start game on mount
   useEffect(() => {
@@ -34,6 +67,7 @@ export default function GameScreen() {
   // Navigate to result screen on game over
   useEffect(() => {
     if (engine.status === 'GAME_OVER') {
+      playSound('gameOver');
       const timer = setTimeout(() => {
         router.push('/result');
       }, 2000); // 2 second delay to show final state
@@ -42,6 +76,28 @@ export default function GameScreen() {
     }
   }, [engine.status, router]);
 
+  // Play sound effects on score/combo changes
+  useEffect(() => {
+    // Skip initial mount
+    if (prevScoreRef.current === 0 && engine.score === 0) {
+      prevScoreRef.current = engine.score;
+      prevComboRef.current = engine.combo;
+      return;
+    }
+
+    // Score increased = match occurred
+    if (engine.score > prevScoreRef.current) {
+      if (engine.combo > prevComboRef.current && engine.combo > 1) {
+        playSound('combo');
+      } else {
+        playSound('match');
+      }
+    }
+
+    prevScoreRef.current = engine.score;
+    prevComboRef.current = engine.combo;
+  }, [engine.score, engine.combo]);
+
   /**
    * Gesture handlers for touch controls
    */
@@ -49,6 +105,7 @@ export default function GameScreen() {
   const tapLeftGesture = Gesture.Tap()
     .onEnd(() => {
       rotateLeft();
+      playSound('rotate');
     })
     .runOnJS(true);
 
@@ -56,6 +113,7 @@ export default function GameScreen() {
   const tapRightGesture = Gesture.Tap()
     .onEnd(() => {
       rotateRight();
+      playSound('rotate');
     })
     .runOnJS(true);
 
@@ -64,6 +122,7 @@ export default function GameScreen() {
     .minDuration(100)
     .onStart(() => {
       fastDrop();
+      playSound('drop');
     })
     .onEnd(() => {
       normalDrop();
@@ -84,7 +143,7 @@ export default function GameScreen() {
   return (
     <View style={styles.container}>
       {/* Game Canvas */}
-      <GameCanvas debug={false} />
+      <GameCanvas debug={false} particles={particles} />
 
       {/* HUD */}
       <View style={styles.hud}>
@@ -92,16 +151,39 @@ export default function GameScreen() {
           <Text style={styles.hudLabel}>Score</Text>
           <Text style={styles.hudValue}>{engine.score}</Text>
         </View>
-        <View style={styles.hudRow}>
-          <Text style={styles.hudLabel}>Combo</Text>
-          <Text style={styles.hudValue}>
-            {engine.combo > 0 ? `x${engine.combo}` : '-'}
-          </Text>
-        </View>
+        {engine.isTimeMode && engine.remainingTime !== undefined ? (
+          <View style={styles.hudRow}>
+            <Text style={styles.hudLabel}>Time</Text>
+            <Text
+              style={[
+                styles.hudValue,
+                engine.remainingTime < 30 && styles.hudValueWarning,
+              ]}
+            >
+              {Math.ceil(engine.remainingTime)}s
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.hudRow}>
+            <Text style={styles.hudLabel}>Combo</Text>
+            <Text style={styles.hudValue}>
+              {engine.combo > 0 ? `x${engine.combo}` : '-'}
+            </Text>
+          </View>
+        )}
       </View>
 
+      {/* Banner Ad Placeholder (only show if ad-free not unlocked) */}
+      {!isAdFree && (
+        <View style={styles.adBanner}>
+          <Text style={styles.adBannerText}>
+            🎁 Unlock 10 achievements to remove ads!
+          </Text>
+        </View>
+      )}
+
       {/* Control Areas */}
-      <View style={styles.controlsContainer}>
+      <View style={[styles.controlsContainer, !isAdFree && styles.controlsWithAd]}>
         {/* Left control area */}
         <GestureDetector gesture={Gesture.Race(longPressGesture, tapLeftGesture)}>
           <Pressable style={styles.controlLeft}>
@@ -167,6 +249,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#00ffff',
+  },
+  hudValueWarning: {
+    color: '#ff0000',
   },
   controlsContainer: {
     position: 'absolute',
@@ -240,5 +325,26 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '700',
     color: '#ffff00',
+  },
+  adBanner: {
+    position: 'absolute',
+    bottom: 150,
+    left: 0,
+    right: 0,
+    height: 50,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 215, 0, 0.5)',
+  },
+  adBannerText: {
+    fontSize: 12,
+    color: '#ffd700',
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  controlsWithAd: {
+    bottom: 50,
   },
 });

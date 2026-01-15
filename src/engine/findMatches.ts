@@ -88,7 +88,7 @@ function findRingMatches(
 
     // Check if match is valid
     if (indices.length >= MIN_MATCH_LENGTH) {
-      matches.push({ indices, color });
+      matches.push({ indices, color: color as import('./types').BlockColor });
     }
   }
 
@@ -133,7 +133,7 @@ function findSectorMatches(
 
     // Check if match is valid
     if (indices.length >= MIN_MATCH_LENGTH) {
-      matches.push({ indices, color });
+      matches.push({ indices, color: color as import('./types').BlockColor });
     }
 
     // Move to next unprocessed ring

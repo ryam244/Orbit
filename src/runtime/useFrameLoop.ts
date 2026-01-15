@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import { useSharedValue, useFrameCallback, runOnJS } from 'react-native-reanimated';
 import { useGameStore } from '../stores/useGameStore';
 import { GameConfig } from '../constants/GameConfig';
+import { getDifficultyConfig } from '../constants/DifficultyConfig';
 import { stepFall } from '../engine/stepFall';
 import { lockBlock } from '../engine/lockBlock';
 import { findMatches } from '../engine/findMatches';
@@ -20,12 +21,16 @@ import { getIndex } from '../utils/grid';
  */
 export const useFrameLoop = () => {
   const engine = useGameStore((state) => state.engine);
+  const selectedDifficulty = useGameStore((state) => state.selectedDifficulty);
   const updateEngine = useGameStore((state) => state.updateEngine);
   const setActiveBlock = useGameStore((state) => state.setActiveBlock);
   const setGrid = useGameStore((state) => state.setGrid);
   const incrementScore = useGameStore((state) => state.incrementScore);
   const setCombo = useGameStore((state) => state.setCombo);
   const endGame = useGameStore((state) => state.endGame);
+
+  // Get difficulty configuration
+  const difficultyConfig = getDifficultyConfig(selectedDifficulty);
 
   const lastFrameTime = useSharedValue(0);
   const isProcessing = useRef(false);
@@ -90,7 +95,7 @@ export const useFrameLoop = () => {
 
       // Spawn next block
       try {
-        const nextColor = randomColor(GameConfig.colorCount);
+        const nextColor = randomColor(difficultyConfig.colorCount);
         const spawnResult = spawn({
           grid: finalGrid,
           nextColor: engine.nextColor,
@@ -102,27 +107,61 @@ export const useFrameLoop = () => {
           color: spawnResult.color,
           sector: spawnResult.sector,
           ringPos: 0,
-          velocity: GameConfig.initialVelocity,
+          velocity: difficultyConfig.initialVelocity,
         });
 
         updateEngine({ nextColor });
       } catch (error) {
         // Game Over - no free spawn position
-        console.log('Game Over: No spawn position available');
-        endGame();
-        setActiveBlock(null);
+        if (engine.isEndlessMode) {
+          // Endless mode: Auto-clear grid and continue
+          console.log('Endless mode: Grid full, auto-clearing');
+          const clearedGrid = new Uint8Array(
+            GameConfig.ringCount * GameConfig.sectorCount
+          );
+          setGrid(clearedGrid);
+
+          // Spawn new block on cleared grid
+          const nextColor = randomColor(difficultyConfig.colorCount);
+          try {
+            const spawnResult = spawn({
+              grid: clearedGrid,
+              nextColor: engine.nextColor,
+              sectorCount: GameConfig.sectorCount,
+            });
+
+            setActiveBlock({
+              id: `block-${Date.now()}`,
+              color: spawnResult.color,
+              sector: spawnResult.sector,
+              ringPos: 0,
+              velocity: difficultyConfig.initialVelocity,
+            });
+
+            updateEngine({ nextColor });
+          } catch {
+            // This shouldn't happen with empty grid, but handle it
+            endGame();
+            setActiveBlock(null);
+          }
+        } else {
+          // Standard mode: Game Over
+          console.log('Game Over: No spawn position available');
+          endGame();
+          setActiveBlock(null);
+        }
       }
     } catch (error) {
       console.error('Error handling landing:', error);
       // Try to recover by spawning a new block
       try {
-        const nextColor = randomColor(GameConfig.colorCount);
+        const nextColor = randomColor(difficultyConfig.colorCount);
         setActiveBlock({
           id: `block-${Date.now()}`,
           color: nextColor,
           sector: 0,
           ringPos: 0,
-          velocity: GameConfig.initialVelocity,
+          velocity: difficultyConfig.initialVelocity,
         });
       } catch {
         endGame();
@@ -145,6 +184,18 @@ export const useFrameLoop = () => {
     const deltaMs = lastFrameTime.value === 0 ? 16 : frameInfo.timestamp - lastFrameTime.value;
     const deltaSeconds = deltaMs / 1000;
     lastFrameTime.value = frameInfo.timestamp;
+
+    // Time Attack mode: Update remaining time
+    if (engine.isTimeMode && engine.remainingTime !== undefined) {
+      const newRemainingTime = Math.max(0, engine.remainingTime - deltaSeconds);
+      runOnJS(updateEngine)({ remainingTime: newRemainingTime });
+
+      // Time's up - game over
+      if (newRemainingTime <= 0) {
+        runOnJS(endGame)();
+        return;
+      }
+    }
 
     // Skip if no active block
     if (!engine.active) {
